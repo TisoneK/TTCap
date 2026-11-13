@@ -68,9 +68,18 @@ with SofascoreClient() as client:
     for ev in client.tournament_scheduled_events(19041, "2026-11-12"):
         print(ev.tournament.name, ev.label())
 
-    # filter a day by competition / category
-    elite = client.fixtures("2026-11-12").by_unique_tournament(19041)
+    # the raw daily index: which tournaments play, with per-tz event counts
+    index = client.scheduled_tournaments("2026-11-12")   # pages are 1-indexed
+    for st in index:
+        print(st.name, st.event_count(tz_offset=0))
 ```
+
+`fixtures(date)` is two-step, mirroring the web client: it reads the daily
+schedule *index* (`scheduled_tournaments`, which lists the tournaments
+playing that day plus per-timezone event **counts** — not the events),
+then fetches each tournament's `scheduled-events` and merges them. That's
+one request per tournament, so it is paced by the rate limiter; pass
+`max_tournaments=N` to cap it.
 
 `EventList` carries the filters: `.scheduled()`, `.live()`, `.finished()`,
 `.by_unique_tournament(id)`, `.by_category(id)`, `.sorted_by_start()`.
@@ -192,6 +201,13 @@ map to the enums in `ttcap/models/enums.py`.
 - **Two tournament ids:** `uniqueTournament.id` (recurring competition,
   used in `/unique-tournament/{id}/…`) vs. `tournament.id` (season
   instance, used by live counts). TTCap keeps them distinct.
+- **Daily schedule index** (verified live 2026-11-13): `scheduled-tournaments/{date}/page/{n}`
+  is **1-indexed** (page 0 → 404) and returns
+  `{scheduled: [{tournament, timezoneEventCount}], hasNextPage}` — the
+  tournaments playing that day with per-timezone-offset event *counts*, not
+  the events. The sport-wide `scheduled-events/{date}` route does **not**
+  exist (404); events come per tournament. TTCap's `fixtures()` handles the
+  two-step join for you.
 - **customId vs numeric id:** prior meetings (`/h2h/events`) are keyed by
   `customId`; the numeric id 404s there.
 - **Per-event availability:** `point-by-point` is gated behind the SPA's

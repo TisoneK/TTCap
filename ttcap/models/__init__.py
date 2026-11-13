@@ -38,6 +38,7 @@ from .relational import (
     Streak,
     TeamStreaks,
 )
+from .schedule import ScheduledTournament, ScheduledTournaments
 from .score import Changes, EventTime, Periods, Score, Status
 from .statistics import StatGroup, StatItem, StatPeriod, Statistics
 from .team import Team, TeamColors
@@ -64,6 +65,9 @@ __all__ = [
     # event
     "Event",
     "EventList",
+    # schedule
+    "ScheduledTournament",
+    "ScheduledTournaments",
     # point-by-point
     "Point",
     "SetScore",

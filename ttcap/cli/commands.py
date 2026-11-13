@@ -60,7 +60,7 @@ def cmd_fixtures(args: Any, client: SofascoreClient) -> int:
         events = client.tournament_scheduled_events(args.tournament, date)
         title = f"Fixtures — tournament {args.tournament} · {date}"
     else:
-        events = client.fixtures(date, args.page)
+        events = client.fixtures(date, max_tournaments=args.max_tournaments)
         title = f"Fixtures — table tennis · {date}"
     events = _apply_status(events, getattr(args, "status", "all")).sorted_by_start()
     if args.json:
@@ -75,7 +75,7 @@ def cmd_fixtures(args: Any, client: SofascoreClient) -> int:
 
 def cmd_results(args: Any, client: SofascoreClient) -> int:
     date = args.date or _today()
-    events = client.results(date, args.page).sorted_by_start()
+    events = client.results(date, max_tournaments=args.max_tournaments).sorted_by_start()
     if args.json:
         render.dump_json([e.raw for e in events.events])
         return 0

@@ -60,5 +60,5 @@ def player() -> dict:
 
 
 @pytest.fixture
-def schedule_grouped() -> dict:
-    return load("schedule_grouped.json")
+def scheduled_tournaments() -> dict:
+    return load("scheduled_tournaments.json")

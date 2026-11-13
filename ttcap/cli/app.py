@@ -32,11 +32,13 @@ def build_parser() -> argparse.ArgumentParser:
         p_fx.add_argument("--tournament", type=int, help="unique-tournament id to scope to")
         p_fx.add_argument("--status", choices=["all", "live", "scheduled", "finished"],
                           default="all", help="filter by match status")
-        p_fx.add_argument("--page", type=int, default=0)
+        p_fx.add_argument("--max-tournaments", type=int, default=None, dest="max_tournaments",
+                          help="cap tournaments fetched (fewer requests)")
 
     p_res = sub.add_parser("results", parents=[parent], help="finished matches on a date")
     p_res.add_argument("date", nargs="?", help="YYYY-MM-DD (default: today)")
-    p_res.add_argument("--page", type=int, default=0)
+    p_res.add_argument("--max-tournaments", type=int, default=None, dest="max_tournaments",
+                       help="cap tournaments fetched (fewer requests)")
 
     sub.add_parser("today", parents=[parent], help="live + today's fixtures overview")
     sub.add_parser("live", parents=[parent], help="list live table-tennis matches")

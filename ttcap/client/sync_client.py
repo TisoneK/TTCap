@@ -3,12 +3,12 @@
 from __future__ import annotations
 
 import time
-from typing import Any, Optional
+from typing import Any, List, Optional
 
 import httpx
 
 from .. import endpoints as ep
-from ..errors import TransportError
+from ..errors import NotFoundError, TransportError
 from ..models import (
     CategoryList,
     Event,
@@ -17,6 +17,7 @@ from ..models import (
     Incidents,
     Player,
     PointByPoint,
+    ScheduledTournaments,
     Standings,
     Statistics,
     TeamStreaks,
@@ -116,23 +117,57 @@ class SofascoreClient:
         """All table-tennis matches currently in progress."""
         return EventList.from_dict(self.get_json(ep.discovery.live_events()))
 
-    def scheduled_tournaments(self, date: str, page: int = 0) -> Any:
-        """Raw sport-wide schedule response (grouped by tournament)."""
-        return self.get_json(ep.discovery.scheduled_tournaments(date, page))
+    def scheduled_tournaments(self, date: str, page: int = 1) -> ScheduledTournaments:
+        """The daily schedule index: tournaments active on a date with
+        per-timezone event counts (pages are 1-indexed). Not the events —
+        use :meth:`fixtures` for those."""
+        return ScheduledTournaments.from_dict(
+            self.get_json(ep.discovery.scheduled_tournaments(date, page))
+        )
+
+    def scheduled_tournament_ids(self, date: str, max_pages: int = 10) -> List[int]:
+        """Every distinct uniqueTournament id with events on ``date``,
+        paging until ``hasNextPage`` is false (bounded by ``max_pages``)."""
+        ids: List[int] = []
+        seen: set = set()
+        page = 1
+        while page <= max_pages:
+            index = self.scheduled_tournaments(date, page)
+            for utid in index.unique_tournament_ids():
+                if utid not in seen:
+                    seen.add(utid)
+                    ids.append(utid)
+            if not index.has_next_page:
+                break
+            page += 1
+        return ids
 
     # -- fixtures (the core: every match on a date) -------------------------
 
-    def fixtures(self, date: str, page: int = 0) -> EventList:
-        """All TT events scheduled on ``date`` (YYYY-MM-DD), any status.
+    def fixtures(self, date: str, *, max_tournaments: Optional[int] = None,
+                 max_pages: int = 10) -> EventList:
+        """All TT matches on ``date`` (YYYY-MM-DD), any status.
 
-        Flattens the (tournament-grouped) schedule response into one list.
+        Two-step, mirroring the web client: read the schedule index for the
+        date, then fetch each tournament's ``scheduled-events`` and merge
+        (de-duped by id). This makes one request per tournament, so it is
+        paced by the client's rate limiter; cap it with ``max_tournaments``.
         Combine with :meth:`EventList.scheduled`/``.live``/``.finished``.
         """
-        return EventList.from_schedule(self.scheduled_tournaments(date, page))
+        ids = self.scheduled_tournament_ids(date, max_pages=max_pages)
+        if max_tournaments is not None:
+            ids = ids[:max_tournaments]
+        lists: List[EventList] = []
+        for utid in ids:
+            try:
+                lists.append(self.tournament_scheduled_events(utid, date))
+            except NotFoundError:
+                continue
+        return EventList.merge(lists)
 
-    def results(self, date: str, page: int = 0) -> EventList:
+    def results(self, date: str, **kwargs: Any) -> EventList:
         """Finished TT matches on a date."""
-        return self.fixtures(date, page).finished()
+        return self.fixtures(date, **kwargs).finished()
 
     # -- tournament ---------------------------------------------------------
 

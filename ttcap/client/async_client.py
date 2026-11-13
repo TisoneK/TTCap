@@ -3,12 +3,12 @@
 from __future__ import annotations
 
 import asyncio
-from typing import Any, Optional
+from typing import Any, List, Optional
 
 import httpx
 
 from .. import endpoints as ep
-from ..errors import TransportError
+from ..errors import NotFoundError, TransportError
 from ..models import (
     CategoryList,
     Event,
@@ -17,6 +17,7 @@ from ..models import (
     Incidents,
     Player,
     PointByPoint,
+    ScheduledTournaments,
     Standings,
     Statistics,
     TeamStreaks,
@@ -107,16 +108,43 @@ class AsyncSofascoreClient:
     async def live_events(self) -> EventList:
         return EventList.from_dict(await self.get_json(ep.discovery.live_events()))
 
-    async def scheduled_tournaments(self, date: str, page: int = 0) -> Any:
-        return await self.get_json(ep.discovery.scheduled_tournaments(date, page))
+    async def scheduled_tournaments(self, date: str, page: int = 1) -> ScheduledTournaments:
+        return ScheduledTournaments.from_dict(
+            await self.get_json(ep.discovery.scheduled_tournaments(date, page))
+        )
+
+    async def scheduled_tournament_ids(self, date: str, max_pages: int = 10) -> List[int]:
+        ids: List[int] = []
+        seen: set = set()
+        page = 1
+        while page <= max_pages:
+            index = await self.scheduled_tournaments(date, page)
+            for utid in index.unique_tournament_ids():
+                if utid not in seen:
+                    seen.add(utid)
+                    ids.append(utid)
+            if not index.has_next_page:
+                break
+            page += 1
+        return ids
 
     # -- fixtures -----------------------------------------------------------
 
-    async def fixtures(self, date: str, page: int = 0) -> EventList:
-        return EventList.from_schedule(await self.scheduled_tournaments(date, page))
+    async def fixtures(self, date: str, *, max_tournaments: Optional[int] = None,
+                       max_pages: int = 10) -> EventList:
+        ids = await self.scheduled_tournament_ids(date, max_pages=max_pages)
+        if max_tournaments is not None:
+            ids = ids[:max_tournaments]
+        lists: List[EventList] = []
+        for utid in ids:
+            try:
+                lists.append(await self.tournament_scheduled_events(utid, date))
+            except NotFoundError:
+                continue
+        return EventList.merge(lists)
 
-    async def results(self, date: str, page: int = 0) -> EventList:
-        return (await self.fixtures(date, page)).finished()
+    async def results(self, date: str, **kwargs: Any) -> EventList:
+        return (await self.fixtures(date, **kwargs)).finished()
 
     # -- tournament ---------------------------------------------------------
 

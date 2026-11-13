@@ -1,0 +1,28 @@
+{
+  "_note": "Real shape of /sport/table-tennis/scheduled-tournaments/{date}/page/{n} (verified live 2026-11-13): a list of tournaments with per-timezone event counts, NOT events. Pages are 1-indexed. Synthetic values.",
+  "scheduled": [
+    {
+      "tournament": {
+        "name": "Sample Series",
+        "slug": "sample-series",
+        "category": { "name": "Testland", "id": 9001 },
+        "uniqueTournament": { "name": "Sample Series", "id": 50001 },
+        "priority": 0,
+        "id": 60001
+      },
+      "timezoneEventCount": { "0": 3, "-28800": 3, "3600": 2 }
+    },
+    {
+      "tournament": {
+        "name": "Other Cup",
+        "slug": "other-cup",
+        "category": { "name": "Elsewhere", "id": 9002 },
+        "uniqueTournament": { "name": "Other Cup", "id": 50002 },
+        "priority": 0,
+        "id": 60002
+      },
+      "timezoneEventCount": { "0": 2 }
+    }
+  ],
+  "hasNextPage": false
+}

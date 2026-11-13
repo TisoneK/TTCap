@@ -103,35 +103,6 @@ class Event:
         return out
 
 
-def _collect_event_dicts(data: Any, _depth: int = 0) -> List[Any]:
-    """Recursively gather event-like dicts from a response.
-
-    Confirmed list endpoints return ``{"events": [...]}``. The sport-wide
-    ``scheduled-tournaments`` response groups events under tournaments and
-    its exact shape is not pinned down, so this walks the structure and
-    collects every ``events`` array it finds (bounded depth).
-    """
-    found: List[Any] = []
-    if _depth > 6:
-        return found
-    if isinstance(data, dict):
-        evs = data.get("events")
-        if isinstance(evs, list):
-            found.extend(e for e in evs if isinstance(e, dict))
-        for key, val in data.items():
-            if key == "events":
-                continue
-            if isinstance(val, (dict, list)):
-                found.extend(_collect_event_dicts(val, _depth + 1))
-    elif isinstance(data, list):
-        for item in data:
-            if isinstance(item, dict) and ("homeTeam" in item or "status" in item) and "id" in item:
-                found.append(item)
-            elif isinstance(item, (dict, list)):
-                found.extend(_collect_event_dicts(item, _depth + 1))
-    return found
-
-
 @dataclass(frozen=True)
 class EventList:
     """Wrapper for the many ``{"events": [...]}`` list responses.
@@ -148,20 +119,17 @@ class EventList:
         return cls(events=[Event.from_dict(e) for e in (d.get("events") or [])])
 
     @classmethod
-    def from_schedule(cls, data: Any) -> "EventList":
-        """Parse a schedule response whose events may be nested/grouped.
-
-        De-duplicates by event id while preserving first-seen order.
-        """
+    def merge(cls, lists: "List[EventList]") -> "EventList":
+        """Concatenate several lists, de-duplicating by event id."""
         seen: set = set()
         events: List[Event] = []
-        for raw in _collect_event_dicts(data):
-            ev = Event.from_dict(raw)
-            if ev.id is not None and ev.id in seen:
-                continue
-            if ev.id is not None:
-                seen.add(ev.id)
-            events.append(ev)
+        for lst in lists:
+            for ev in lst.events:
+                if ev.id is not None and ev.id in seen:
+                    continue
+                if ev.id is not None:
+                    seen.add(ev.id)
+                events.append(ev)
         return cls(events=events)
 
     # -- filters ------------------------------------------------------------

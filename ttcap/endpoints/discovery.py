@@ -25,8 +25,13 @@ def live_events() -> str:
     return f"/sport/{SPORT}/events/live"
 
 
-def scheduled_tournaments(date: str, page: int = 0) -> str:
-    """Tournaments (with their events) scheduled on a date, paginated."""
+def scheduled_tournaments(date: str, page: int = 1) -> str:
+    """Tournaments active on a date, with per-timezone event counts.
+
+    Pages are **1-indexed** (page 0 returns 404). The response lists
+    tournaments + counts, not events — fetch each tournament's
+    ``scheduled-events`` for the matches. Verified live 2026-11-13.
+    """
     return f"/sport/{SPORT}/scheduled-tournaments/{date}/page/{page}"
 
 
