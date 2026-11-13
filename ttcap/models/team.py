@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from typing import Any, Optional
 
 from ._parse import as_int
-from .common import Country, Sport
+from .common import Category, Country, Sport
 
 
 @dataclass(frozen=True)
@@ -37,13 +37,18 @@ class Team:
     gender: Optional[str]
     type: Optional[int]
     national: Optional[bool]
+    disabled: Optional[bool]
+    user_count: Optional[int]
+    player_team_info_id: Optional[int]
     country: Optional[Country]
     sport: Optional[Sport]
+    category: Optional[Category]
     colors: Optional[TeamColors]
 
     @classmethod
     def from_dict(cls, d: Any) -> "Team":
         d = d or {}
+        pti = d.get("playerTeamInfo") or {}
         return cls(
             id=as_int(d.get("id")),
             name=d.get("name"),
@@ -54,8 +59,12 @@ class Team:
             gender=d.get("gender"),
             type=as_int(d.get("type")),
             national=d.get("national"),
+            disabled=d.get("disabled"),
+            user_count=as_int(d.get("userCount")),
+            player_team_info_id=as_int(pti.get("id")) if isinstance(pti, dict) else None,
             country=Country.from_dict(d.get("country")) if d.get("country") else None,
             sport=Sport.from_dict(d.get("sport")) if d.get("sport") else None,
+            category=Category.from_dict(d.get("category")) if d.get("category") else None,
             colors=TeamColors.from_dict(d.get("teamColors")) if d.get("teamColors") else None,
         )
 

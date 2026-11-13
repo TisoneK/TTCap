@@ -27,6 +27,7 @@ from .enums import (
 )
 from .event import Event, EventList
 from .incident import Incident, Incidents
+from .player import Player
 from .point_by_point import Point, PointByPoint, SetPoints, SetScore
 from .relational import (
     Duel,
@@ -50,9 +51,10 @@ __all__ = [
     "UniqueTournament",
     "Season",
     "Tournament",
-    # team
+    # team / player
     "Team",
     "TeamColors",
+    "Player",
     # score
     "Score",
     "Status",

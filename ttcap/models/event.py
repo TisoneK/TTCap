@@ -75,6 +75,10 @@ class Event:
         return bool(self.status and self.status.is_finished)
 
     @property
+    def is_scheduled(self) -> bool:
+        return bool(self.status and self.status.is_scheduled)
+
+    @property
     def change_timestamp(self) -> Optional[int]:
         return self.changes.timestamp if self.changes else None
 
@@ -99,9 +103,42 @@ class Event:
         return out
 
 
+def _collect_event_dicts(data: Any, _depth: int = 0) -> List[Any]:
+    """Recursively gather event-like dicts from a response.
+
+    Confirmed list endpoints return ``{"events": [...]}``. The sport-wide
+    ``scheduled-tournaments`` response groups events under tournaments and
+    its exact shape is not pinned down, so this walks the structure and
+    collects every ``events`` array it finds (bounded depth).
+    """
+    found: List[Any] = []
+    if _depth > 6:
+        return found
+    if isinstance(data, dict):
+        evs = data.get("events")
+        if isinstance(evs, list):
+            found.extend(e for e in evs if isinstance(e, dict))
+        for key, val in data.items():
+            if key == "events":
+                continue
+            if isinstance(val, (dict, list)):
+                found.extend(_collect_event_dicts(val, _depth + 1))
+    elif isinstance(data, list):
+        for item in data:
+            if isinstance(item, dict) and ("homeTeam" in item or "status" in item) and "id" in item:
+                found.append(item)
+            elif isinstance(item, (dict, list)):
+                found.extend(_collect_event_dicts(item, _depth + 1))
+    return found
+
+
 @dataclass(frozen=True)
 class EventList:
-    """Wrapper for the many ``{"events": [...]}`` list responses."""
+    """Wrapper for the many ``{"events": [...]}`` list responses.
+
+    Also carries fixture/status filters, since the same list shape backs
+    schedules, results, live lists and a player's recent games.
+    """
 
     events: List[Event]
 
@@ -109,6 +146,51 @@ class EventList:
     def from_dict(cls, d: Any) -> "EventList":
         d = d or {}
         return cls(events=[Event.from_dict(e) for e in (d.get("events") or [])])
+
+    @classmethod
+    def from_schedule(cls, data: Any) -> "EventList":
+        """Parse a schedule response whose events may be nested/grouped.
+
+        De-duplicates by event id while preserving first-seen order.
+        """
+        seen: set = set()
+        events: List[Event] = []
+        for raw in _collect_event_dicts(data):
+            ev = Event.from_dict(raw)
+            if ev.id is not None and ev.id in seen:
+                continue
+            if ev.id is not None:
+                seen.add(ev.id)
+            events.append(ev)
+        return cls(events=events)
+
+    # -- filters ------------------------------------------------------------
+
+    def live(self) -> "EventList":
+        return EventList([e for e in self.events if e.is_live])
+
+    def scheduled(self) -> "EventList":
+        return EventList([e for e in self.events if e.is_scheduled])
+
+    def finished(self) -> "EventList":
+        return EventList([e for e in self.events if e.is_finished])
+
+    def by_unique_tournament(self, unique_tournament_id: int) -> "EventList":
+        return EventList([
+            e for e in self.events
+            if e.tournament and e.tournament.unique_tournament_id == unique_tournament_id
+        ])
+
+    def by_category(self, category_id: int) -> "EventList":
+        out = []
+        for e in self.events:
+            cat = e.tournament.category if e.tournament else None
+            if cat and cat.id == category_id:
+                out.append(e)
+        return EventList(out)
+
+    def sorted_by_start(self) -> "EventList":
+        return EventList(sorted(self.events, key=lambda e: e.start_timestamp or 0))
 
     def __iter__(self):
         return iter(self.events)

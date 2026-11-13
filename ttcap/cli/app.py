@@ -22,13 +22,28 @@ def build_parser() -> argparse.ArgumentParser:
     sub = parser.add_subparsers(dest="command", metavar="command")
     sub.required = True
 
-    sub.add_parser("categories", parents=[parent], help="list table-tennis categories")
+    # --- fixtures & catalogue (the core) ---
+    for name, helptext in (
+        ("fixtures", "all matches on a date (any status)"),
+        ("schedule", "alias of 'fixtures'"),
+    ):
+        p_fx = sub.add_parser(name, parents=[parent], help=helptext)
+        p_fx.add_argument("date", nargs="?", help="YYYY-MM-DD (default: today)")
+        p_fx.add_argument("--tournament", type=int, help="unique-tournament id to scope to")
+        p_fx.add_argument("--status", choices=["all", "live", "scheduled", "finished"],
+                          default="all", help="filter by match status")
+        p_fx.add_argument("--page", type=int, default=0)
+
+    p_res = sub.add_parser("results", parents=[parent], help="finished matches on a date")
+    p_res.add_argument("date", nargs="?", help="YYYY-MM-DD (default: today)")
+    p_res.add_argument("--page", type=int, default=0)
+
+    sub.add_parser("today", parents=[parent], help="live + today's fixtures overview")
     sub.add_parser("live", parents=[parent], help="list live table-tennis matches")
 
-    p_sched = sub.add_parser("schedule", parents=[parent], help="scheduled events for a date")
-    p_sched.add_argument("date", nargs="?", help="YYYY-MM-DD (default: today)")
-    p_sched.add_argument("--tournament", type=int, help="unique-tournament id to scope to")
-    p_sched.add_argument("--page", type=int, default=0)
+    p_cat = sub.add_parser("categories", parents=[parent], help="list table-tennis categories")
+    p_cat.add_argument("--date", help="only categories active on this date (YYYY-MM-DD)")
+    p_cat.add_argument("--tz", type=int, default=0, help="tz offset in seconds (with --date)")
 
     p_event = sub.add_parser("event", parents=[parent], help="show a single match")
     p_event.add_argument("event_id", type=int)
@@ -43,7 +58,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_h2h = sub.add_parser("h2h", parents=[parent], help="head-to-head summary for a match")
     p_h2h.add_argument("event_id", type=int)
 
-    p_player = sub.add_parser("player", parents=[parent], help="a player's recent results")
+    p_player = sub.add_parser("player", parents=[parent], help="player detail + recent results")
     p_player.add_argument("player_id", type=int)
     p_player.add_argument("--page", type=int, default=0)
 

@@ -52,3 +52,13 @@ def standings() -> dict:
 @pytest.fixture
 def h2h() -> dict:
     return load("h2h.json")
+
+
+@pytest.fixture
+def player() -> dict:
+    return load("player.json")
+
+
+@pytest.fixture
+def schedule_grouped() -> dict:
+    return load("schedule_grouped.json")

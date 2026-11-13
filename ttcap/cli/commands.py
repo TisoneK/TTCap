@@ -19,7 +19,10 @@ def _today() -> str:
 
 
 def cmd_categories(args: Any, client: SofascoreClient) -> int:
-    cats = client.categories()
+    if getattr(args, "date", None):
+        cats = client.categories_on(args.date, args.tz)
+    else:
+        cats = client.categories()
     if args.json:
         render.dump_json([c.__dict__ for c in cats.categories])
         return 0
@@ -41,29 +44,61 @@ def cmd_live(args: Any, client: SofascoreClient) -> int:
     return 0
 
 
-def cmd_schedule(args: Any, client: SofascoreClient) -> int:
+def _apply_status(events, status: str):
+    if status == "live":
+        return events.live()
+    if status == "scheduled":
+        return events.scheduled()
+    if status in ("finished", "results"):
+        return events.finished()
+    return events
+
+
+def cmd_fixtures(args: Any, client: SofascoreClient) -> int:
     date = args.date or _today()
     if args.tournament:
         events = client.tournament_scheduled_events(args.tournament, date)
-        title = f"Tournament {args.tournament} — {date}"
-        if args.json:
-            render.dump_json([e.raw for e in events.events])
-            return 0
-        render.events_table(title, list(events.events))
-        return 0
-    data = client.scheduled_tournaments(date, args.page)
-    if args.json:
-        render.dump_json(data)
-        return 0
-    # the schedule endpoint groups events under tournaments; flatten shallowly
-    rows = []
-    for group in (data or {}).get("tournaments", []) if isinstance(data, dict) else []:
-        name = (group.get("tournament") or {}).get("name") or group.get("name") or ""
-        rows.append([group.get("id", ""), name])
-    if rows:
-        render.table(f"Scheduled tournaments — {date} (page {args.page})", ["id", "tournament"], rows)
+        title = f"Fixtures — tournament {args.tournament} · {date}"
     else:
-        render.out(f"No scheduled-tournament rows parsed for {date}; try --json for the raw shape.")
+        events = client.fixtures(date, args.page)
+        title = f"Fixtures — table tennis · {date}"
+    events = _apply_status(events, getattr(args, "status", "all")).sorted_by_start()
+    if args.json:
+        render.dump_json([e.raw for e in events.events])
+        return 0
+    if not len(events):
+        render.out(f"No fixtures for {date} ({getattr(args, 'status', 'all')}).")
+        return 0
+    render.events_table(f"{title} ({len(events)})", list(events.events))
+    return 0
+
+
+def cmd_results(args: Any, client: SofascoreClient) -> int:
+    date = args.date or _today()
+    events = client.results(date, args.page).sorted_by_start()
+    if args.json:
+        render.dump_json([e.raw for e in events.events])
+        return 0
+    if not len(events):
+        render.out(f"No finished matches for {date}.")
+        return 0
+    render.events_table(f"Results — table tennis · {date} ({len(events)})", list(events.events))
+    return 0
+
+
+def cmd_today(args: Any, client: SofascoreClient) -> int:
+    date = _today()
+    live = client.live_events()
+    render.events_table(f"Live now ({len(live)})", list(live.events))
+    fixtures = client.fixtures(date)
+    scheduled = fixtures.scheduled().sorted_by_start()
+    finished = fixtures.finished()
+    render.out(
+        f"\nToday {date}: {len(fixtures)} matches — "
+        f"{len(scheduled)} upcoming, {len(live)} live, {len(finished)} finished."
+    )
+    if len(scheduled):
+        render.events_table("Upcoming today", list(scheduled.events)[:25])
     return 0
 
 
@@ -140,11 +175,26 @@ def cmd_h2h(args: Any, client: SofascoreClient) -> int:
 
 
 def cmd_player(args: Any, client: SofascoreClient) -> int:
-    events = client.player_last_events(args.player_id, args.page)
+    player = client.player(args.player_id)
     if args.json:
-        render.dump_json([e.raw for e in events.events])
+        render.dump_json(player.raw)
         return 0
-    render.events_table(f"Player {args.player_id} — recent (page {args.page})", list(events.events))
+    team = player.team
+    if team:
+        country = team.country.name if team.country else "?"
+        render.out(f"[bold]{player.name}[/bold]" if render._HAS_RICH else player.name)
+        bits = [f"id {player.id}", f"country {country}"]
+        if team.gender:
+            bits.append(f"gender {team.gender}")
+        if team.user_count is not None:
+            bits.append(f"followers {team.user_count}")
+        render.out(" · ".join(bits))
+    # recent form
+    try:
+        recent = client.player_last_events(args.player_id, args.page)
+        render.events_table(f"Recent results (page {args.page})", list(recent.events))
+    except NotFoundError:
+        render.out("No recent results available.")
     return 0
 
 
@@ -192,7 +242,10 @@ def cmd_watch(args: Any, client: SofascoreClient) -> int:
 HANDLERS = {
     "categories": cmd_categories,
     "live": cmd_live,
-    "schedule": cmd_schedule,
+    "fixtures": cmd_fixtures,
+    "schedule": cmd_fixtures,  # alias
+    "results": cmd_results,
+    "today": cmd_today,
     "event": cmd_event,
     "pbp": cmd_pbp,
     "stats": cmd_stats,

@@ -15,6 +15,7 @@ from ..models import (
     EventList,
     H2H,
     Incidents,
+    Player,
     PointByPoint,
     Standings,
     Statistics,
@@ -95,6 +96,11 @@ class AsyncSofascoreClient:
     async def categories(self) -> CategoryList:
         return CategoryList.from_dict(await self.get_json(ep.discovery.categories_all()))
 
+    async def categories_on(self, date: str, tz_offset: int = 0) -> CategoryList:
+        return CategoryList.from_dict(
+            await self.get_json(ep.discovery.categories_on_date(date, tz_offset))
+        )
+
     async def live_tournaments(self) -> dict:
         return (await self.get_json(ep.discovery.live_tournaments())) or {}
 
@@ -103,6 +109,14 @@ class AsyncSofascoreClient:
 
     async def scheduled_tournaments(self, date: str, page: int = 0) -> Any:
         return await self.get_json(ep.discovery.scheduled_tournaments(date, page))
+
+    # -- fixtures -----------------------------------------------------------
+
+    async def fixtures(self, date: str, page: int = 0) -> EventList:
+        return EventList.from_schedule(await self.scheduled_tournaments(date, page))
+
+    async def results(self, date: str, page: int = 0) -> EventList:
+        return (await self.fixtures(date, page)).finished()
 
     # -- tournament ---------------------------------------------------------
 
@@ -145,8 +159,14 @@ class AsyncSofascoreClient:
 
     # -- player -------------------------------------------------------------
 
-    async def player(self, player_id: int) -> Any:
-        return await self.get_json(ep.player.detail(player_id))
+    async def player(self, player_id: int) -> Player:
+        return Player.from_dict(await self.get_json(ep.player.detail(player_id)))
+
+    async def player_unique_tournaments(self, player_id: int) -> Any:
+        return await self.get_json(ep.player.unique_tournaments(player_id))
+
+    async def player_standings_seasons(self, player_id: int) -> Any:
+        return await self.get_json(ep.player.standings_seasons(player_id))
 
     async def player_last_events(self, player_id: int, page: int = 0) -> EventList:
         return EventList.from_dict(await self.get_json(ep.player.last_events(player_id, page)))

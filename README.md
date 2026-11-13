@@ -1,11 +1,11 @@
 # TTCap — Table Tennis Capture
 
-A small, respectful **backend** client and live-capture toolkit for the
-table-tennis data served by the Sofascore backend. TTCap is a data layer,
-not an app — it gives you typed Python models, sync + async HTTP clients,
-and a live-match **watcher** that follows a match the way the web client
-does: HTTP polling keyed on a server-side change signal (there is no
-websocket/SSE).
+A small, respectful **backend** client for *all* table-tennis data served
+by the Sofascore backend — **fixtures, results, tournaments, players,
+standings, head-to-head and statistics** — with live scores as one piece
+of it, not the whole story. TTCap is a data layer, not an app: typed
+Python models, sync + async HTTP clients, a date-based **fixtures** layer,
+and an optional live-match watcher.
 
 > **Independent project.** TTCap is an original implementation. It is not
 > affiliated with, endorsed by, or connected to Sofascore. All tournament,
@@ -48,24 +48,69 @@ text if `rich` is absent).
 
 ## Library usage
 
+### Fixtures & results (the core)
+
 ```python
 from ttcap import SofascoreClient
 
 with SofascoreClient() as client:
-    for ev in client.live_events():
+    # every match on a date, then slice by status
+    day = client.fixtures("2026-11-12")
+    print(len(day), "matches",
+          len(day.scheduled()), "upcoming",
+          len(day.live()), "live",
+          len(day.finished()), "finished")
+
+    for ev in client.results("2026-11-12"):          # finished only
         print(ev.label(), ev.score_line(), ev.set_scores())
 
+    # scope to one competition
+    for ev in client.tournament_scheduled_events(19041, "2026-11-12"):
+        print(ev.tournament.name, ev.label())
+
+    # filter a day by competition / category
+    elite = client.fixtures("2026-11-12").by_unique_tournament(19041)
+```
+
+`EventList` carries the filters: `.scheduled()`, `.live()`, `.finished()`,
+`.by_unique_tournament(id)`, `.by_category(id)`, `.sorted_by_start()`.
+
+### Catalogue: tournaments, players, standings
+
+```python
+with SofascoreClient() as client:
+    for cat in client.categories():                  # countries + International
+        print(cat.name, cat.id)
+
+    p = client.player(218149)                         # player = a 'team' of type 1
+    print(p.name, p.country.name, p.gender, p.user_count)
+    for ev in client.player_last_events(218149):      # recent form
+        print(ev.label(), ev.score_line())
+
+    standings = client.standings(1964, 92027)         # group-stage only
+    for group in standings:
+        for row in group.rows:
+            print(group.group_name, row.position, row.team.display_name, row.points)
+```
+
+### A single match in full
+
+```python
+with SofascoreClient() as client:
     ev = client.event(17540687)
-    print(ev.is_live, ev.status.description, ev.winner)
+    print(ev.is_live, ev.status.description, ev.winner, ev.set_scores())
 
     pbp = client.point_by_point(17540687)   # header-gated route handled for you
     print("rallies:", pbp.total_rallies)
 
     stats = client.statistics(17540687)
     print(stats.period("ALL").item("pointsWon").home_value)
+
+    h2h = client.h2h(17540687)
+    print(h2h.team_duel.home_wins, "-", h2h.team_duel.away_wins)
 ```
 
-### Watch a live match
+### Watch a live match (optional)
 
 ```python
 from ttcap import SofascoreClient, LiveMatchWatcher
@@ -102,15 +147,20 @@ asyncio.run(main())
 A thin operator CLI over the same client (`ttcap` or `python -m ttcap`):
 
 ```bash
+ttcap today                      # live + today's fixtures overview
+ttcap fixtures 2026-11-12        # every match on a date
+ttcap fixtures 2026-11-12 --status scheduled   # upcoming only
+ttcap fixtures 2026-11-12 --tournament 19041   # scope to one competition
+ttcap results 2026-11-12         # finished matches on a date
 ttcap live                       # live matches
+ttcap categories                 # countries/regions (add --date to scope)
+ttcap player 218149              # player detail + recent results
+ttcap standings 1964 92027       # group-stage standings (404 for non-group comps)
 ttcap event 17540687             # one match: sets, per-set points, status
 ttcap pbp 17540687               # point-by-point (last rallies per set)
 ttcap stats 17540687 --period 1ST
 ttcap h2h 17540687               # head-to-head summary
-ttcap schedule 2026-11-12 --tournament 19041
-ttcap player 218149              # a player's recent results
-ttcap standings 1964 1           # group-stage standings (404 for non-group comps)
-ttcap watch 17540687 --interval 20
+ttcap watch 17540687 --interval 20             # poll a live match until it ends
 ```
 
 Add `--json` to any command for the raw payload, and `--min-interval`

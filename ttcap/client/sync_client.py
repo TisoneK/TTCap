@@ -15,6 +15,7 @@ from ..models import (
     EventList,
     H2H,
     Incidents,
+    Player,
     PointByPoint,
     Standings,
     Statistics,
@@ -98,17 +99,40 @@ class SofascoreClient:
     # -- discovery ----------------------------------------------------------
 
     def categories(self) -> CategoryList:
+        """Every category (country/region) carrying TT events."""
         return CategoryList.from_dict(self.get_json(ep.discovery.categories_all()))
+
+    def categories_on(self, date: str, tz_offset: int = 0) -> CategoryList:
+        """Categories that have TT events on a date (tz offset in seconds)."""
+        return CategoryList.from_dict(
+            self.get_json(ep.discovery.categories_on_date(date, tz_offset))
+        )
 
     def live_tournaments(self) -> dict:
         """Raw ``{tournamentId: liveEventCount}`` map."""
         return self.get_json(ep.discovery.live_tournaments()) or {}
 
     def live_events(self) -> EventList:
+        """All table-tennis matches currently in progress."""
         return EventList.from_dict(self.get_json(ep.discovery.live_events()))
 
     def scheduled_tournaments(self, date: str, page: int = 0) -> Any:
+        """Raw sport-wide schedule response (grouped by tournament)."""
         return self.get_json(ep.discovery.scheduled_tournaments(date, page))
+
+    # -- fixtures (the core: every match on a date) -------------------------
+
+    def fixtures(self, date: str, page: int = 0) -> EventList:
+        """All TT events scheduled on ``date`` (YYYY-MM-DD), any status.
+
+        Flattens the (tournament-grouped) schedule response into one list.
+        Combine with :meth:`EventList.scheduled`/``.live``/``.finished``.
+        """
+        return EventList.from_schedule(self.scheduled_tournaments(date, page))
+
+    def results(self, date: str, page: int = 0) -> EventList:
+        """Finished TT matches on a date."""
+        return self.fixtures(date, page).finished()
 
     # -- tournament ---------------------------------------------------------
 
@@ -154,8 +178,17 @@ class SofascoreClient:
 
     # -- player -------------------------------------------------------------
 
-    def player(self, player_id: int) -> Any:
-        return self.get_json(ep.player.detail(player_id))
+    def player(self, player_id: int) -> Player:
+        """Player (a ``team`` of type 1) detail."""
+        return Player.from_dict(self.get_json(ep.player.detail(player_id)))
+
+    def player_unique_tournaments(self, player_id: int) -> Any:
+        """Raw list of competitions the player has appeared in."""
+        return self.get_json(ep.player.unique_tournaments(player_id))
+
+    def player_standings_seasons(self, player_id: int) -> Any:
+        """Which competitions/seasons expose a standings table for the player."""
+        return self.get_json(ep.player.standings_seasons(player_id))
 
     def player_last_events(self, player_id: int, page: int = 0) -> EventList:
         return EventList.from_dict(self.get_json(ep.player.last_events(player_id, page)))

@@ -1,0 +1,23 @@
+{
+  "team": {
+    "name": "Alpha Ada",
+    "slug": "alpha-ada",
+    "shortName": "Alpha A.",
+    "gender": "F",
+    "sport": { "name": "Table tennis", "slug": "table-tennis", "id": 20 },
+    "category": { "name": "International", "slug": "international", "id": 88 },
+    "tournament": { "name": "Some Open 2016, Women, Quali.", "id": 52713 },
+    "userCount": 2518,
+    "playerTeamInfo": { "id": 26173, "underage": false },
+    "nameCode": "ALP",
+    "disabled": false,
+    "national": false,
+    "type": 1,
+    "country": { "alpha2": "TL", "alpha3": "TLD", "name": "Testland" },
+    "id": 111111,
+    "fullName": "Alpha Ada",
+    "teamColors": { "primary": "#374df5", "secondary": "#374df5", "text": "#ffffff" }
+  },
+  "pregameForm": null,
+  "editorEntity": false
+}
