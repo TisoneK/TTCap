@@ -1,0 +1,20 @@
+{
+  "pointByPoint": [
+    {
+      "set": 2,
+      "points": [
+        { "homePoint": "0", "awayPoint": "1", "homePointType": 5, "awayPointType": 1 },
+        { "homePoint": "1", "awayPoint": "1", "homePointType": 1, "awayPointType": 5 }
+      ],
+      "score": { "homeScore": 7, "awayScore": 8, "serving": 1, "scoring": 0 }
+    },
+    {
+      "set": 1,
+      "points": [
+        { "homePoint": "10", "awayPoint": "9", "homePointType": 1, "awayPointType": 5 },
+        { "homePoint": "11", "awayPoint": "9", "homePointType": 3, "awayPointType": 5 }
+      ],
+      "score": { "homeScore": 11, "awayScore": 9, "serving": -1, "scoring": 1 }
+    }
+  ]
+}

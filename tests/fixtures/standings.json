@@ -1,0 +1,13 @@
+{
+  "standings": [
+    {
+      "isGroup": true,
+      "groupName": "Group A",
+      "updatedAtTimestamp": 1800000000,
+      "rows": [
+        { "team": { "name": "Alpha A.", "type": 1, "id": 111111 }, "position": 1, "matches": 3, "wins": 3, "losses": 0, "points": 6 },
+        { "team": { "name": "Beta B.", "type": 1, "id": 222222 }, "position": 2, "matches": 3, "wins": 1, "losses": 2, "points": 4 }
+      ]
+    }
+  ]
+}

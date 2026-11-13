@@ -1,0 +1,6 @@
+{
+  "categories": [
+    { "name": "Testland", "slug": "testland", "sport": { "name": "Table tennis", "slug": "table-tennis", "id": 20 }, "priority": 0, "id": 9001, "flag": "testland", "alpha2": "TL" },
+    { "name": "International", "slug": "international", "sport": { "name": "Table tennis", "slug": "table-tennis", "id": 20 }, "priority": 11, "id": 88, "flag": "international" }
+  ]
+}

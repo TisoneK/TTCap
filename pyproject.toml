@@ -1,0 +1,50 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ttcap"
+version = "0.1.0"
+description = "Table Tennis Capture — a respectful live table-tennis data client for the Sofascore backend"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [{ name = "Tisone Kironget", email = "tisonkironget@gmail.com" }]
+keywords = ["table-tennis", "sofascore", "live-scores", "sports-data", "api-client"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Games/Entertainment",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+dependencies = [
+    "httpx>=0.24,<1.0",
+]
+
+[project.optional-dependencies]
+cli = ["rich>=13.0"]
+dev = ["pytest>=7.0", "rich>=13.0"]
+
+[project.urls]
+Homepage = "https://github.com/TisoneK/TTCap"
+Repository = "https://github.com/TisoneK/TTCap"
+Issues = "https://github.com/TisoneK/TTCap/issues"
+
+[project.scripts]
+ttcap = "ttcap.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["ttcap*"]
+
+[tool.setuptools.package-data]
+ttcap = ["py.typed"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

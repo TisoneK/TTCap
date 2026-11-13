@@ -1,0 +1,33 @@
+{
+  "statistics": [
+    {
+      "period": "ALL",
+      "groups": [
+        {
+          "groupName": "Points",
+          "statisticsItems": [
+            { "name": "Points won", "home": "20", "away": "18", "homeValue": 20, "awayValue": 18, "valueType": "event", "statisticsType": "positive", "compareCode": 1, "key": "pointsWon" },
+            { "name": "Service points won", "home": "9/19 (47%)", "away": "10/19 (53%)", "homeValue": 9, "awayValue": 10, "homeTotal": 19, "awayTotal": 19, "valueType": "team", "statisticsType": "positive", "compareCode": 2, "key": "servicePointsAccuracy" }
+          ]
+        },
+        {
+          "groupName": "Other",
+          "statisticsItems": [
+            { "name": "Timeouts", "home": "1", "away": "0", "homeValue": 1, "awayValue": 0, "valueType": "event", "statisticsType": "positive", "compareCode": 1, "key": "timeouts" }
+          ]
+        }
+      ]
+    },
+    {
+      "period": "1ST",
+      "groups": [
+        {
+          "groupName": "Points",
+          "statisticsItems": [
+            { "name": "Points won", "home": "11", "away": "9", "homeValue": 11, "awayValue": 9, "valueType": "event", "key": "pointsWon" }
+          ]
+        }
+      ]
+    }
+  ]
+}

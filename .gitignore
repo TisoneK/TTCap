@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+*.egg
+build/
+dist/
+.eggs/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Captured data — never commit bulk captures or datasets (see README: responsible use)
+_scratch/
+captures/
+*.capture.json
+*.ndjson
+
+# Environment / editor
+.env
+.env.*
+.DS_Store
+.idea/
+.vscode/
